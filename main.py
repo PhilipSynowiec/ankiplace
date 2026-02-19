@@ -241,11 +241,19 @@ def submit_reviews(submission: ReviewSubmission):
                       (submission.user_id, proof.card_id, proof.timestamp))
             new_proofs_count += 1
     
-    # Rule: 10 reviews = 1 paint
-    # We might need to store "remainder" reviews in user table, or just calculate from total proofs.
-    # For now, let's just award 1 paint per 10 NEW proofs found in this batch.
-    # A more robust way: total_proofs / 10 - total_paint_ever_awarded
-    paint_awarded = new_proofs_count // 10
+    # Award paint based on total count to handle small batches correctly
+    c.execute('SELECT count(*) FROM review_proofs WHERE user_id = ?', (submission.user_id,))
+    total_proofs = c.fetchone()[0]
+    
+    # Simple strategy: Total paint ever earned should be total_proofs // 10
+    # We need to know how much has already been awarded to increment correctly.
+    # For now, let's keep it simple: if new_proofs_count > 0, check if we crossed a 10-threshold.
+    # Improved: Each user has a 'total_paint_earned' column or we just use balance + pixels_painted.
+    # Let's add 'total_proofs' or similar to 'users' table to track thresholds safely.
+    
+    # EVEN EASIER: Just award 1 paint if current_total % 10 < previous_total % 10 (wrapped around)
+    # Actually, let's just use: (total_proofs // 10) - ( (total_proofs - new_proofs_count) // 10 )
+    paint_awarded = (total_proofs // 10) - ((total_proofs - new_proofs_count) // 10)
     
     if paint_awarded > 0:
         c.execute('UPDATE users SET paint_balance = paint_balance + ? WHERE user_id = ?',
