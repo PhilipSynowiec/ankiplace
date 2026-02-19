@@ -21,7 +21,7 @@ ENV ANKIPLACE_SECRET=change-me-please
 
 USER ankiplace
 
-# Expose the default FastAPI port
+# Expose the FastAPI port
 EXPOSE 4201
 
 # Using a single worker for SQLite is safer to avoid locking issues
